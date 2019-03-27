@@ -27,13 +27,9 @@ local kvmap
 local CONFIG_DIR = os.getenv('XDG_CONFIG_HOME') or
                   (os.getenv('HOME') .. "/.config")
 
--- global var
-local config = {}
-
 ------------------------------------------------------------------------
 main = function()
   local args = parseArgs()
-  getConfig()
   if args.e or args.a then
     getEnvironmentCanadaAlerts()
     separator()
