@@ -1,9 +1,9 @@
-curl = require("cURL")               -- https://luarocks.org/modules/moteus/lua-curl
-json = require("dkjson")             -- https://luarocks.org/modules/dhkolf/dkjson
-yaml = require("lyaml")              -- https://luarocks.org/modules/gvvaughan/lyaml
-lfs  = require("lfs")                -- https://keplerproject.github.io/luafilesystem/
-cli  = require("cliargs")            -- https://luarocks.org/modules/amireh/lua_cliargs
-feedparser = require("feedparser")   -- https://luarocks.org/modules/slact/feedparser
+local curl = require("cURL")               -- https://luarocks.org/modules/moteus/lua-curl
+local json = require("dkjson")             -- https://luarocks.org/modules/dhkolf/dkjson
+local yaml = require("lyaml")              -- https://luarocks.org/modules/gvvaughan/lyaml
+local lfs  = require("lfs")                -- https://keplerproject.github.io/luafilesystem/
+local cli  = require("cliargs")            -- https://luarocks.org/modules/amireh/lua_cliargs
+local feedparser = require("feedparser")   -- https://luarocks.org/modules/slact/feedparser
 
 -- pre-declare function
 local getEnvironmentCanadaAlerts
@@ -28,7 +28,7 @@ local CONFIG_DIR = os.getenv('XDG_CONFIG_HOME') or
                   (os.getenv('HOME') .. "/.config")
 
 ------------------------------------------------------------------------
-main = function()
+local main = function()
   local args = parseArgs()
   if args.e or args.a then
     getEnvironmentCanadaAlerts()
@@ -223,16 +223,6 @@ function AccuWeather:_init(params)
   self.apikey = self:getApiKey()
 end
 
-function AccuWeather:getApiKey()
-  local file = CONFIG_DIR .. "/accuWeather.apikey"
-  local attrs = lfs.attributes(file); assert(attrs)
-  local fh = io.open(file);           assert(fh)
-  local apikey = fh:read('a')
-  fh:close()
-  assert(apikey)
-  return apikey:trim()
-end
-
 function AccuWeather:getWeather()
   self:getCachedData()
 
@@ -246,6 +236,16 @@ function AccuWeather:getWeather()
   self:printForecast()
 
   self:storeCachedData()
+end
+
+function AccuWeather:getApiKey()
+  local file = CONFIG_DIR .. "/accuWeather.apikey"
+  local attrs = lfs.attributes(file); assert(attrs)
+  local fh = io.open(file);           assert(fh)
+  local apikey = fh:read('a')
+  fh:close()
+  assert(apikey)
+  return apikey:trim()
 end
 
 function AccuWeather:getCachedData()
@@ -320,6 +320,10 @@ function AccuWeather:getCurrentConditions()
   --print(json.encode(self.cachedData.currentConditions))
 end
 
+function AccuWeather:fmtTemp (temp)
+  return ("%s°%s"):format(temp.Value, temp.Unit)
+end
+
 function AccuWeather:printCurrentConditions()
   local data = self.cachedData.currentConditions
 
@@ -335,12 +339,16 @@ function AccuWeather:printCurrentConditions()
   print("   Apparent Temp: ".. self:fmtTemp(data.ApparentTemperature.Metric))
   print("   UV Index: ".. (data.UVIndex or data.UVIndexText))
   print("   Cloud Cover: ".. data.CloudCover .."%")
-  print(("   Pressure: %s %s %s"):format(data.Pressure.Metric.Value, data.Pressure.Metric.Unit, data.PressureTendency.LocalizedText))
-  print(("   Wind: %s %s %s"):format(data.Wind.Speed.Metric.Value, data.Wind.Speed.Metric.Unit, data.Wind.Direction.Localized))
-end
-
-function AccuWeather:fmtTemp(temp)
-  return ("%s°%s"):format(temp.Value, temp.Unit)
+  print(("   Pressure: %s %s %s"):format(
+      data.Pressure.Metric.Value,
+      data.Pressure.Metric.Unit,
+      data.PressureTendency.LocalizedText
+  ))
+  print(("   Wind: %s %s %s"):format(
+      data.Wind.Speed.Metric.Value,
+      data.Wind.Speed.Metric.Unit,
+      data.Wind.Direction.Localized
+  ))
 end
 
 function AccuWeather:getForecast()
@@ -397,12 +405,13 @@ end
 function AccuWeather:storeCachedData()
   local fh = io.open(self.cacheFile, "w")
   assert(fh)
-  fh, err = fh:write(yaml.dump({{
+  local err
+  fh, err = fh:write(yaml.dump({ {
     location   = self.location,
     latitude   = self.latitude,
     longitude  = self.longitude,
     cachedData = self.cachedData,
-  }}))
+  } }))
   assert(fh, err)
   fh:close()
 end
