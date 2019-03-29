@@ -1,9 +1,10 @@
-local curl = require("cURL")               -- https://luarocks.org/modules/moteus/lua-curl
-local json = require("dkjson")             -- https://luarocks.org/modules/dhkolf/dkjson
-local yaml = require("lyaml")              -- https://luarocks.org/modules/gvvaughan/lyaml
-local lfs  = require("lfs")                -- https://keplerproject.github.io/luafilesystem/
-local cli  = require("cliargs")            -- https://luarocks.org/modules/amireh/lua_cliargs
-local feedparser = require("feedparser")   -- https://luarocks.org/modules/slact/feedparser
+local curl  = require("cURL")            -- https://luarocks.org/modules/moteus/lua-curl
+local json  = require("dkjson")          -- https://luarocks.org/modules/dhkolf/dkjson
+local yaml  = require("lyaml")           -- https://luarocks.org/modules/gvvaughan/lyaml
+local lfs   = require("lfs")             -- https://keplerproject.github.io/luafilesystem/
+local cli   = require("cliargs")         -- https://luarocks.org/modules/amireh/lua_cliargs
+local split = require("split")           -- https://luarocks.org/modules/telemachus/split
+local feedparser = require("feedparser") -- https://luarocks.org/modules/slact/feedparser
 
 -- pre-declare function
 local getEnvironmentCanadaAlerts
@@ -19,6 +20,7 @@ local EnvironmentCanadaWeather
 local AccuWeather
 
 -- other stuff
+local wrap
 local indent
 local formatTime
 local separator
@@ -155,10 +157,9 @@ function EnvironmentCanadaAlert:getAlert()
   local parsed = feedparser.parse(xml, self.rssUrl)
   assert(parsed.entries and parsed.entries[1])
   local alert = parsed.entries[1]
-  -- TODO prettify
   print(alert.title)
-  print(alert.summary)
-  print(alert.links[1].href)
+  print(indent(wrap(alert.summary)))
+  print("\nFull details at " .. alert.links[1].href)
 end
 
 ------------------------------------------------------------------------
@@ -221,6 +222,11 @@ function AccuWeather:_init(params)
   self.cacheAgeInHours = 3
   self.cacheFile = CONFIG_DIR .. "/accuWeather.yaml"
   self.apikey = self:getApiKey()
+  self.reqParams = {
+    language = "en-us",
+    details = "true",
+    metric = "true"
+  }
 end
 
 function AccuWeather:getWeather()
@@ -311,13 +317,12 @@ end
 function AccuWeather:getCurrentConditions()
   if not (self.cachedData and self.cachedData.currentConditions) then
     local resource = self.host .. "/currentconditions/v1/" .. self.location.key
-    local data = self:fetchData(resource, {details = "true"})
+    local data = self:fetchData(resource, self.reqParams)
     assert(data and data[1])
     self.cachedData = self.cachedData or {}
     self.cachedData.currentConditions = data[1]
     self.cachedData.observationTime = data[1].EpochTime
   end
-  --print(json.encode(self.cachedData.currentConditions))
 end
 
 function AccuWeather:fmtTemp (temp)
@@ -354,7 +359,7 @@ end
 function AccuWeather:getForecast()
   if not self.cachedData.forecast then
     local resource = self.host .. "/forecasts/v1/daily/5day/" .. self.location.key
-    local data = self:fetchData(resource, {details = "true"})
+    local data = self:fetchData(resource, self.reqParams)
     assert(data)
     self.cachedData.forecast = data
   end
@@ -375,8 +380,8 @@ function AccuWeather:printDailyForecast(f)
   print(("        Max %s; Precip %s; Sunrise %s; Moonrise %s"):format(
       self:fmtTemp(f.Temperature.Maximum),
       f.Day.PrecipitationProbability,
-      f.Sun.Rise:sub(11, 16),
-      f.Moon.Rise:sub(11, 16)
+      f.Sun.Rise:sub(12, 16),
+      f.Moon.Rise:sub(12, 16)
   ))
 
   if f.AirAndPollen then
@@ -419,6 +424,25 @@ end
 ------------------------------------------------------------------------
 -- careful returning the result of gsub() --  you get the new
 -- string AND the number of substitions
+
+wrap = function(text, width)
+  width = width or 80
+  local words = split.split(text)
+  local lines = {""}
+  for _,word in ipairs(words) do
+    local lastline = ("%s%s%s"):format(
+        lines[#lines],
+        (#lines[#lines] == 0 and "" or " "),
+        word
+    )
+    if #lastline <= width then
+      lines[#lines] = lastline
+    else
+      lines[#lines+1] = word
+    end
+  end
+  return table.concat(lines, "\n")
+end
 
 indent = function(text, spaces)
   spaces = spaces or "   "
