@@ -6,6 +6,20 @@ local cli   = require("cliargs")         -- https://luarocks.org/modules/amireh/
 local split = require("split")           -- https://luarocks.org/modules/telemachus/split
 local feedparser = require("feedparser") -- https://luarocks.org/modules/slact/feedparser
 
+--[=[
+brew install --devel curl
+luarocks install lua-curl CURL_INCDIR=/usr/local/Cellar/curl/7.68.0/include
+# ... update as appropriate ..........^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+luarocks install dkjson
+luarocks install lyaml
+luarocks install luafilesystem
+luarocks install lua_cliargs
+luarocks install split
+luarocks install luaexpat EXPAT_DIR=/usr/local/opt/expat # dependency for feedparser
+luarocks install feedparser
+# plus apply https://github.com/slact/lua-feedparser/pull/4
+--]=]
+
 -- pre-declare function
 local getEnvironmentCanadaAlerts
 local getEnvironmentCanadaWeather
