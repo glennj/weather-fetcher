@@ -1,0 +1,6 @@
+<package>
+  <name>WeatherFetcher</name>
+  <prereq>NetClients</prereq>
+  <namespace>Jackman.Weather</namespace>
+  <filein>WttrIn.st</filein>
+</package>

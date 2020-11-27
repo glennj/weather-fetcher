@@ -18,7 +18,14 @@ proc get(w: WttrIn, uri: string): string =
   let url = w.url uri
   var client = newHttpClient()
   client.headers = newHttpHeaders({"User-Agent": "curl"})
-  return client.getContent(url)
+  var response = client.get(url)
+
+  var code = response.code
+  if code.is3xx: return "Wttr.in has moved: " & $code
+  if code.is4xx: return "Wttr.in returned error: " & $code
+  if code.is5xx: return "Wttr.in is currently down: " & $code
+
+  return response.body
 
 proc current*(w: WttrIn): string = w.get &"{w.city}?T"
 

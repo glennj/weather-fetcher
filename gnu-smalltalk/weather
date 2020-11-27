@@ -1,0 +1,17 @@
+#!/bin/sh
+cd "$(dirname "$0")"
+
+img="image.im"
+
+if ! [ -f "$img" ]; then
+    gst --quiet <<____END_CREATE_IMAGE
+        FileStream fileIn: 'WttrIn.st'.
+        ObjectMemory snapshot: '$img'
+____END_CREATE_IMAGE
+fi
+
+gst --quiet --image "$img" <<'END_WEATHER'
+    w := Jackman.Weather.WttrIn city: 'Ottawa'.
+    (w current) print.
+    (w moon)    printNl.
+END_WEATHER

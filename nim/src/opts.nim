@@ -1,10 +1,19 @@
-import parseopt
+import parseopt, strutils
 
 proc usage(status: int) =
   echo """
-foo
-bar
-"""
+usage: weather [options]
+
+where the options select the source(s)
+      --accuweather
+      --environmentcanada
+      --wttrin
+      --moon 
+
+Specifying no options selects all of them.
+Options can be specified with any prefix, such as `--acc`."""
+
+
   quit(status)
 
 
@@ -18,17 +27,20 @@ type Opts* = object
 
 
 proc parseCli*(): Opts =
-  #result = Opts(false, false, false, false)
   for kind, key, val in getopt():
+    let k = key.toLowerAscii
     case kind
       of cmdLongOption, cmdShortOption:
-        case key
-          of "help", "h": usage(QuitSuccess)
-          of "W", "wttrin": result.wttrin = true
-          of "E", "environmentcanada": result.envcan = true
-          of "A", "accuweather": result.accuw = true
-          of "M", "moon": result.moon = true
-          else: usage(QuitFailure)
+        if "environmentcanada".find(k) == 0:
+          result.envcan = true
+        elif "accuweather".find(k) == 0:
+          result.accuw = true
+        elif "wttrin".find(k) == 0:
+          result.wttrin = true
+        elif "moon".find(k) == 0:
+          result.moon = true
+        else:
+          usage(QuitFailure)
       else: discard
 
   # if none specified, show them all
